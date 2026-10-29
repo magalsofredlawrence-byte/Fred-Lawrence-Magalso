@@ -1,0 +1,35 @@
+services:
+  clamav:
+    image: clamav/clamav:1.4.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3310:3310"
+    volumes:
+      - clamav_database:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CLAMAV_HOST: clamav
+      DATABASE_PATH: /app/data/safe_file_middleman.sqlite3
+      PRIVATE_STORAGE_PATH: /app/data/private_uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      clamav:
+        condition: service_healthy
+
+volumes:
+  app_data:
+  clamav_database:
